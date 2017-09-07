@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      1.0
+// @version      1.0.1
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -24,7 +24,7 @@
 
 
     function init() {
-    	console.warn("init!");
+    	console.warn("init!" + lasturl);
     	if (button) button.remove();
     	button = $('<div style="background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer;font-size: 14px;height: 33px;margin-top: 7px;line-height: 33px;padding: 0 15px;font-weight: 500;">Download MP3</div>');
 	    button.one("click", download);
@@ -39,7 +39,7 @@
 	}
     
 	function waitForDiv() {
-		var div = $("#subscribe-button");
+		var div = $("[id='subscribe-button']:last");
 		if (div.length > 0)
 			setTimeout(function() { div.before(button); }, 1000);
 		else
