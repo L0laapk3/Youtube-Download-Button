@@ -3,7 +3,8 @@
 // @version      0.2
 // @author       L0laapk3
 // @match        https://www.youtube.com/watch?v=*
-// @require http://code.jquery.com/jquery-1.12.4.min.js
+// @require 	 http://code.jquery.com/jquery-1.12.4.min.js
+// @downloadURL	 https://github.com/L0laapk3/Youtube-Download-Button/raw/master/download.user.js
 // @grant        none
 // ==/UserScript==
 
