@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      1.0.1
+// @version      1.0.2
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -82,7 +82,7 @@
                     });
                 else if (response.status == "ok")
                     return finish(response.serverUrl + "/download?file=" + response.id_process);
-                alert("download error :(\n" + response);
+                alert("download error :(\n" + JSON.stringify(response));
             }
         });
     }
