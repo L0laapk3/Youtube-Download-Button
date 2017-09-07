@@ -2,24 +2,41 @@
 // @name         Youtube Download button
 // @version      0.2
 // @author       L0laapk3
-// @match        https://www.youtube.com/watch?v=*
+// @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
 // @downloadURL  https://rawgit.com/L0laapk3/Youtube-Download-Button/master/download.user.js
 // @grant        none
 // ==/UserScript==
 
 
+
 (function() {
-    var button = $('<div style="background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer;font-size: 14px;height: 33px;margin-top: 7px;line-height: 33px;padding: 0 15px;font-weight: 500;">Download MP3</div>');
-    button.one("click", download);
-	waitForDiv();
-    var url = window.location.href;
-    setInterval(function() {
-        if (window.location.href != url) {
-            url = window.location.href;
-            waitForDiv();
-        }
-    }, 1000);
+    var button;
+
+    var lasturl = "";
+
+    function check() {
+        if (location.href == lasturl) return;
+    	lasturl = location.href;
+    	if (lasturl.indexOf("watch?v=")) init();
+    }
+	setInterval(check, 1000);
+
+
+    function init() {
+    	console.warn("init!");
+    	if (button) button.remove();
+    	button = $('<div style="background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer;font-size: 14px;height: 33px;margin-top: 7px;line-height: 33px;padding: 0 15px;font-weight: 500;">Download MP3</div>');
+	    button.one("click", download);
+		waitForDiv();
+	    var url = window.location.href;
+	    setInterval(function() {
+	        if (window.location.href != url) {
+	            url = window.location.href;
+	            waitForDiv();
+	        }
+	    }, 1000);
+	}
     
 	function waitForDiv() {
 		var div = $("#subscribe-button");
@@ -65,7 +82,7 @@
                     });
                 else if (response.status == "ok")
                     return finish(response.serverUrl + "/download?file=" + response.id_process);
-                console.warn("wut", response);
+                alert("download error :(\n" + response);
             }
         });
     }
