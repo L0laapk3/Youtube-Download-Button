@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      2.0.1
+// @version      2.0.2
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -40,7 +40,7 @@
 	}
     
 	function waitForDiv() {
-		var div = $("[id='subscribe-button']").sort(function(a, b) { return $(b).offset().top - $(a).offset().top; }).first();
+		var div = $("[id='subscribe-button']").filter(function(i, e) { return $(e).offset().top - $("body").offset().top; }).sort(function(a, b) { return $(b).offset().top - $(a).offset().top; }).first();
 		if (div.length > 0)
 			setTimeout(function() { div.before(button); }, 100);
 		else
@@ -122,7 +122,7 @@
 
 
     setInterval(function() {
-        if ((!$("#downloadbutton") || !$("#downloadbutton").offset() || !$("#downloadbutton").offset().top) && location.href.indexOf("watch") > -1)
+        if ((!$("#downloadbutton") || !$("#downloadbutton").offset() || !($("#downloadbutton").offset().top - $("body").offset().top)) && location.href.indexOf("watch") > -1)
             init();
     }, 5e3);
     
