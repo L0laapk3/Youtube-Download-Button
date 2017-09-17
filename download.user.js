@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      2.0.0
+// @version      2.0.1
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -26,6 +26,7 @@
     function init() {
     	console.warn("init!" + lasturl);
     	if (button) button.remove();
+        if (location.href.indexOf("watch") == -1) return;
     	button = $('<div id="downloadbutton" style="background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer;font-size: 14px;height: 33px;margin-top: 7px;line-height: 33px;padding: 0 15px;font-weight: 500;">Download MP3</div>');
 	    button.one("click", download);
 		waitForDiv();
@@ -39,7 +40,7 @@
 	}
     
 	function waitForDiv() {
-		var div = $("[id='subscribe-button']").filter(function(i, e) { return $(e).offset().top; }).last();
+		var div = $("[id='subscribe-button']").sort(function(a, b) { return $(b).offset().top - $(a).offset().top; }).first();
 		if (div.length > 0)
 			setTimeout(function() { div.before(button); }, 100);
 		else
@@ -121,7 +122,7 @@
 
 
     setInterval(function() {
-        if (!$("#downloadbutton") || !$("#downloadbutton").offset() || !$("#downloadbutton").offset().top)
+        if ((!$("#downloadbutton") || !$("#downloadbutton").offset() || !$("#downloadbutton").offset().top) && location.href.indexOf("watch") > -1)
             init();
     }, 5e3);
     
