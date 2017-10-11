@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      2.1.0
+// @version      2.2.0
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -122,7 +122,6 @@
         console.log("real title:", title)
         console.log("trying url:", downloadUrl);
 
-        $("<iframe>").attr("src", downloadUrl.replace("http://", "https://")).appendTo("body");
 
         var failure = false;
         var iframe = $("<iframe>").attr("src", downloadUrl.replace("http://", "https://")).appendTo("body").ready(function() {
