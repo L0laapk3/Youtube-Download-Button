@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      2.3.0
+// @version      2.3.1
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
+// @require      https://cdn.rawgit.com/meetselva/attrchange/master/js/attrchange.js
 // @downloadURL  https://rawgit.com/L0laapk3/Youtube-Download-Button/master/download.user.js
 // @grant        none
 // ==/UserScript==
@@ -56,7 +57,8 @@
                     marginTop: $("#info-contents").offset().top - $("#downloadbutton").offset().top + 7 + "px",
                     marginRight: $("#downloadbutton").offset().left + $("#downloadbutton").outerWidth() - $("#info-contents").offset().left - $("#info-contents").outerWidth() + "px"
                 };
-                hasScrolled(0);
+                moveButton();
+                $("#downloadbutton").closest("ytd-watch").attrchange({callback: hasScrolled});
             }, 100);
         else
             setTimeout(waitForDiv, 100);
@@ -153,11 +155,11 @@
 
 
     var isThere = false;
-    $(document).scroll(function() { hasScrolled(200); });
-    setInterval(function() { hasScrolled(200); }, 50); //theater mode
-    function hasScrolled(delay) {
+    $(document).scroll(hasScrolled);
+    function hasScrolled() { moveButton(200); }
+    function moveButton(delay) {
         if (!subButton || !button || !topPos) return;
-        if ($(document).scrollTop() + window.innerHeight < subButton.offset().top + subButton.innerHeight()) {
+        if ($(document).scrollTop() + window.innerHeight <= subButton.offset().top + subButton.innerHeight()) {
             if (isThere) return;
             button.animate(topPos, {queue: false, easing: "easeInOut", duration: delay});
             isThere = true;
