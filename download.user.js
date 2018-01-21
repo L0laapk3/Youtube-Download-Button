@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      2.3.1
+// @version      2.3.2
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
 // @require      https://cdn.rawgit.com/meetselva/attrchange/master/js/attrchange.js
+// @updateURL    https://rawgit.com/L0laapk3/Youtube-Download-Button/master/download.user.js
 // @downloadURL  https://rawgit.com/L0laapk3/Youtube-Download-Button/master/download.user.js
 // @grant        none
 // ==/UserScript==
@@ -27,7 +28,7 @@
 
     function init() {
         console.warn("init!" + lasturl);
-        subButton = topPos = undefined;
+        subButton = undefined;
         isThere = false;
         if (button) button.remove();
         if (location.href.indexOf("watch") == -1) return;
@@ -53,12 +54,18 @@
             setTimeout(function() {
                 div.before(button);
                 subButton = div;
-                topPos = {
-                    marginTop: $("#info-contents").offset().top - $("#downloadbutton").offset().top + 7 + "px",
-                    marginRight: $("#downloadbutton").offset().left + $("#downloadbutton").outerWidth() - $("#info-contents").offset().left - $("#info-contents").outerWidth() + "px"
+                var infoContents = button.closest("[id='main']").find("[id='info-contents']");
+                if (!topPos) topPos = {
+                    marginTop: infoContents.offset().top - button.offset().top + 7 + "px",
+                    marginRight: button.offset().left + button.outerWidth() - subButton.offset().left - subButton.outerWidth() + "px"
                 };
-                moveButton();
-                $("#downloadbutton").closest("ytd-watch").attrchange({callback: hasScrolled});
+                moveButton(0);
+                button.closest("ytd-watch").attrchange({callback: function() {
+                    if ((!button || !button.offset() || !(button.offset().top - $("body").offset().top)) && location.href.indexOf("watch") > -1)
+                        init();
+                    else
+                        hasScrolled();
+                }});
             }, 100);
         else
             setTimeout(waitForDiv, 100);
@@ -67,7 +74,7 @@
 
     function download() {
         var url = window.location.href;
-        var title = $("#main").has(button).find(".title").text();
+        var title = button.closest("[id='main']").find(".title").text();
         button.css({cursor: "progress"}).prepend("<paper-spinner-lite style='margin: 2.5px 6px -9.5px -10px;' active>");
         $.ajax({
             method: "POST",
@@ -153,12 +160,14 @@
         });
     }
 
-
-    var isThere = false;
     $(document).scroll(hasScrolled);
+
     function hasScrolled() { moveButton(200); }
+    var isThere = false;
+
     function moveButton(delay) {
         if (!subButton || !button || !topPos) return;
+        window.topPos = topPos;
         if ($(document).scrollTop() + window.innerHeight <= subButton.offset().top + subButton.innerHeight()) {
             if (isThere) return;
             button.animate(topPos, {queue: false, easing: "easeInOut", duration: delay});
@@ -175,11 +184,4 @@
             return -c/2 * ((t-=2)*t*t*t - 2) + b;
         }
     });
-
-
-    setInterval(function() {
-        if ((!$("#downloadbutton") || !$("#downloadbutton").offset() || !($("#downloadbutton").offset().top - $("body").offset().top)) && location.href.indexOf("watch") > -1)
-            init();
-    }, 5e3);
-
 })();
