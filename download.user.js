@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      2.2.0
+// @version      2.3.0
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -11,7 +11,8 @@
 
 
 (function() {
-    var button;
+    var button, subButton;
+    var topPos;
 
     var lasturl = "";
 
@@ -25,9 +26,11 @@
 
     function init() {
         console.warn("init!" + lasturl);
+        subButton = topPos = undefined;
+        isThere = false;
         if (button) button.remove();
         if (location.href.indexOf("watch") == -1) return;
-        button = $('<div id="downloadbutton" style="background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer;font-size: 14px;height: 33px;margin-top: 7px;line-height: 33px;padding: 0 15px;font-weight: 500;">Download MP3</div>');
+        button = $('<div id="downloadbutton" style="background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer;font-size: 14px;height: 33px;line-height: 33px;padding: 0 15px;font-weight: 500; margin-top: 7px;z-index: 1;">Download MP3</div>');
         button.one("click", download);
         waitForDiv();
         var url = window.location.href;
@@ -46,7 +49,15 @@
             .sort(function(a, b) { return $(b).offset().top - $(a).offset().top; })
             .first();
         if (div.length > 0)
-            setTimeout(function() { div.before(button); }, 100);
+            setTimeout(function() {
+                div.before(button);
+                subButton = div;
+                topPos = {
+                    marginTop: $("#info-contents").offset().top - $("#downloadbutton").offset().top + 7 + "px",
+                    marginRight: $("#downloadbutton").offset().left + $("#downloadbutton").outerWidth() - $("#info-contents").offset().left - $("#info-contents").outerWidth() + "px"
+                };
+                hasScrolled(0);
+            }, 100);
         else
             setTimeout(waitForDiv, 100);
     }
@@ -54,7 +65,7 @@
 
     function download() {
         var url = window.location.href;
-        var title = $("#main").has(button).find(".title").text()
+        var title = $("#main").has(button).find(".title").text();
         button.css({cursor: "progress"}).prepend("<paper-spinner-lite style='margin: 2.5px 6px -9.5px -10px;' active>");
         $.ajax({
             method: "POST",
@@ -119,7 +130,7 @@
 
     function finish(downloadUrl, title, errcallback) {
 
-        console.log("real title:", title)
+        console.log("real title:", title);
         console.log("trying url:", downloadUrl);
 
 
@@ -136,9 +147,32 @@
         }).load(function() {
             console.log("fail");
             failure = true;
-            errcallback("invalid download url")
+            errcallback("invalid download url");
         });
     }
+
+
+    var isThere = false;
+    $(document).scroll(function() { hasScrolled(200); });
+    setInterval(function() { hasScrolled(200); }, 50); //theater mode
+    function hasScrolled(delay) {
+        if (!subButton || !button || !topPos) return;
+        if ($(document).scrollTop() + window.innerHeight < subButton.offset().top + subButton.innerHeight()) {
+            if (isThere) return;
+            button.animate(topPos, {queue: false, easing: "easeInOut", duration: delay});
+            isThere = true;
+        } else {
+            if (!isThere) return;
+            button.animate({marginTop: "7px", marginRight: 0}, {queue: false, easing: "easeInOut", duration: delay});
+            isThere = false;
+        }
+    }
+    $.extend($.easing, {
+        easeInOut: function (x, t, b, c, d) {
+            if ((t/=d/2) < 1) return c/2*t*t*t*t + b;
+            return -c/2 * ((t-=2)*t*t*t - 2) + b;
+        }
+    });
 
 
     setInterval(function() {
