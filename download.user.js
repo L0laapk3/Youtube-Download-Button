@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      2.4.0
+// @version      3.0.0
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -82,140 +82,61 @@
     }
 
 
+    console.log(downloaderList);
     function download() {
         button.css({cursor: "progress"}).prepend("<paper-spinner-lite style='margin: 2.5px 6px -9.5px -10px;' active>");
         var id = lastdl = button.closest("ytd-watch").attr("video-id");
         var url = "https://www.youtube.com/watch?v=" + id;
         var title = button.closest("[id='main']").find(".title").text();
-        download_flvto(url, title);
-    }
 
-    function download_flvto(url, title) {
-        GM_xmlhttpRequest({
-            method: "POST",
-            url: "http://www.flvto.biz/nl/convert/",
-            data: "format=1&service=youtube&url=" + encodeURIComponent(url),
-            headers: {
-            "Content-Type": "application/x-www-form-urlencoded"
-            },
-            onload: function(a) {
-                if (a.status != 200)
-                    return download_onlinevideoconverter(url, title, a.status);
-                var match = /"status" *: *"([^"]*)" *, *"statusUrl" *: *"?([^"]*)"?/m.exec(a.responseText);
-                if (!match || !match[1] || !match[2])
-                    return download_onlinevideoconverter(url, title, "no status url");
 
-                if (match[1] == "ready")
-                    return finish("http://www.flvto.biz/nl/download/direct/mp3/yt_" + url.split("=")[1] + "/", title, function(err) { download_onlinevideoconverter(url, title, err); }, true);
 
-                var statusUrl = "http://www.flvto.biz" + match[2].replace(/\\/g, '');
-                console.log(statusUrl);
+        var left = [];
+        var lowestNonFail = 0;
+        var errors = {};
+        var finishFn = [];
+        downloaderList.forEach(function(e, i) {
+            left.push(e.length);
+            finishFn.push([]);
+            console.log(i, e);
+            e.forEach(function(dler, j) {
+                dler.downloadFn(url, title, id, function(dlUrl) {
 
-                var i = 0, lastProgress = 0;
-                function checkStatus() {
-                    GM_xmlhttpRequest({
-                        method: "GET",
-                        url: statusUrl,
-                        onload: function(a) {
-                            if (a.status != 200)
-                                return download_onlinevideoconverter(url, title, "status " + a.status);
-                            try {
-                                var json = JSON.parse(a.responseText);
-                                if (json.status == "redirect") {
-                                    statusUrl = "http://www.flvto.biz" + json.status_url;
-                                    checkStatus();
-                                } else if (json.status == "error" || json.error) {
-                                    return download_onlinevideoconverter(url, title, "status returned error");
-                                } else if (json.status == "finish") {
-                                    return finish("http://www.flvto.biz/nl/download/direct/mp3/yt_" + url.split("=")[1] + "/", title, function(err) { download_onlinevideoconverter(url, title, err); }, true);
-                                } else {
-                                    if (json.progress) {
-                                        if (json.progress != lastProgress) {
-                                            lastProgress = json.progress;
-                                            progress((json.status == "convert" ? 50 : 0) + json.progress / 2);
-                                            i = 0;
-                                        } else
-                                            i++;
-                                    } else
-                                        i++;
+                    if (lowestNonFail == i) {
+                        finish(dlUrl, title, function() {
+                            error("invalid download url");
+                        });
+                    }
 
-                                    if (i > (lastProgress == "5.1" ? 30 : 5) * 1000 / 100) return download_onlinevideoconverter(url, title, "progress stuck"); //5 seconds without progress change
+                }, error, function(prog) { progress(prog); });
 
-                                    return setTimeout(checkStatus, 100);
-                                }
 
-                            } catch (err) {
-                                return download_onlinevideoconverter(url, title, "json: " + err);
-                            }
-                        },
-                        onerror: function(err) { download_onlinevideoconverter(url, title, "status unreachable"); }
-                    });
+                function error(err) {
+                    errors[dler.name] = err;
+                    if (--left[i] == 0)
+                        do {
+                            lowestNonFail++;
+                            if (lowestNonFail >= left.length)
+                                return downloadError(errors);
+                        } while (!left[++lowestNonFail])
                 }
-                checkStatus();
-            },
-            onerror: function(err) { download_onlinevideoconverter(url, title, "unreachable"); }
+
+
+            });
+
         });
     }
 
-
-    function download_onlinevideoconverter(url, title, err0) {
-        console.warn("error 0:", err0);
-        $.ajax({
-            method: "POST",
-            url: "https://www3.onlinevideoconverter.com/webservice",
-            data: {
-                function: "validate",
-                args: {
-                    urlEntryUser: url,
-                    fromConvert: "urlconverter",
-                    requestExt: "mp3",
-                    videoResolution: -1,
-                    audioBitrate: 0,
-                    audioFrequency: 0,
-                    channel: "stereo",
-                    volume: 0,
-                    startFrom: -1,
-                    endTo: -1,
-                    custom_resx: -1,
-                    custom_resy: -1,
-                    advSettings: false,
-                    aspectRatio: -1
-                }
-            },
-            success: function(a) {
-                var response = a.result;
-                if (response.dPageId && response.dPageId.length > 2)
-                    return $.ajax({
-                        url: "https://www.onlinevideoconverter.com/nl/success?id=" + response.dPageId,
-                        success: function(b) {
-                            finish(/\{'url': '([^']+)'/m.exec(b)[1], title, function(err) { download_convert2mp3(url, title, err0, err, 0); });
-                        }
-                    });
-                else if (response.status == "ok")
-                    return finish(response.serverUrl + "/download?file=" + response.id_process, title, function(err) { download_convert2mp3(url, title, err0, err, 0); });
-                download_convert2mp3(url, title, err0, JSON.stringify(response), 0);
-            }
-        });
-    }
+            
 
 
-    //using other downloader
-    function download_convert2mp3(url, title, err0, err1, i) {
-        $.get("https://api.convert2mp3.cc/check.php?v=" + url.split("v=")[1].split("&")[0] + "&h=" + Math.floor(35e5 * Math.random()), function(t) {
-            var o = t.split("|");
-            if("OK" == o[0])
-                return finish("http://dl" + o[1] + ".downloader.space/dl.php?id=" + o[2], title, function(err) {downloadError(err0, err1, err); });
-            if(i > ((o[1] == "PENDING" || o[0] == "DOWNLOAD") ? 100 : 3))
-                return downloadError(err0, err1, "timeout");
-            setTimeout(function() {
-                download_convert2mp3(url, title, err0, err1, i + 1);
-            }, 5e3);
-        });
-    }
+            
 
-
-    function downloadError(err0, err1, err2) {
-        alert("download error :(\nerror 1: " + err0 + "\nerror 2: " + err1 + "\nerror 3: " + err2);
+    function downloadError(errors) {
+        string = "download error :(";
+        for (const key of Object.keys(errors))
+            string += "\n" + key + ": " + errors[key];
+        alert(string);
         init();
     }
 
@@ -226,7 +147,7 @@
 
 
 
-    function finish(downloadUrl, title, errcallback, httpOnly) {
+    function finish(downloadUrl, title, error) {
 
         console.log("real title:", title);
         console.log("trying url:", downloadUrl);
@@ -240,26 +161,8 @@
                 button.css({cursor: "default"});
                 button.children("paper-spinner-lite").remove();
             },
-            onerror: function() { errcallback("invalid download url"); }
+            onerror: error
         });
-
-        /*var failure = false;
-        var iframe = $("<iframe>").attr("src", downloadUrl.replace("http://", "https://")).appendTo("body").ready(function() {
-            setTimeout(function() {
-                iframe.remove();
-                if (failure)
-                    return;
-                console.log("success!");
-                button.css({cursor: "default"});
-                button.children("paper-spinner-lite").remove();
-            }, 5000);
-        }).load(function() {
-            console.log("fail");
-            failure = true;
-            progress(0);
-            errcallback("invalid download url");
-        });*/
-
     }
 
     $(document).scroll(hasScrolled);
@@ -286,4 +189,175 @@
             return -c/2 * ((t-=2)*t*t*t - 2) + b;
         }
     });
+
+
+
+
+
+
+
+
+    var downloaders = [
+
+        {
+
+
+            name: "flvto.biz",
+            priority: -1,
+            subpriority : -1,
+            downloadFn: function(url, title, id, finish, error, progress) {
+                GM_xmlhttpRequest({
+                    method: "POST",
+                    url: "http://www.flvto.biz/nl/convert/",
+                    data: "format=1&service=youtube&url=" + encodeURIComponent(url),
+                    headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    onload: function(a) {
+                        if (a.status != 200)
+                            return error(a.status);
+                        var match = /"status" *: *"([^"]*)" *, *"statusUrl" *: *"?([^"]*)"?/m.exec(a.responseText);
+                        if (!match || !match[1] || !match[2])
+                            return error("no status url");
+
+                        if (match[1] == "ready")
+                            return finish("http://www.flvto.biz/nl/download/direct/mp3/yt_" + url.split("=")[1] + "/");
+
+                        var statusUrl = "http://www.flvto.biz" + match[2].replace(/\\/g, '');
+                        console.log(statusUrl);
+
+                        var i = 0, lastProgress = 0;
+                        function checkStatus() {
+                            GM_xmlhttpRequest({
+                                method: "GET",
+                                url: statusUrl,
+                                onload: function(a) {
+                                    if (a.status != 200)
+                                        return error("status " + a.status);
+                                    try {
+                                        var json = JSON.parse(a.responseText);
+                                        if (json.status == "redirect") {
+                                            statusUrl = "http://www.flvto.biz" + json.status_url;
+                                            checkStatus();
+                                        } else if (json.status == "error" || json.error) {
+                                            return error("status returned error");
+                                        } else if (json.status == "finish") {
+                                            return finish("http://www.flvto.biz/nl/download/direct/mp3/yt_" + id + "/");
+                                        } else {
+                                            if (json.progress) {
+                                                if (json.progress != lastProgress) {
+                                                    lastProgress = json.progress;
+                                                    progress((json.status == "convert" ? 50 : 0) + json.progress / 2);
+                                                    i = 0;
+                                                } else
+                                                    i++;
+                                            } else
+                                                i++;
+
+                                            if (i > (lastProgress == "5.1" ? 30 : 5) * 1000 / 100) return error("progress stuck"); //5 seconds without progress change
+
+                                            return setTimeout(checkStatus, 100);
+                                        }
+
+                                    } catch (err) {
+                                        return error("json: " + err);
+                                    }
+                                },
+                                onerror: error
+                            });
+                        }
+                        checkStatus();
+                    },
+                    onerror: error
+                });
+            }
+
+
+        }, {
+
+
+
+            name: "onlinevideoconverter.com",
+            priority: 1,
+            subpriority: 0,
+            downloadFn: function(url, title, id, finish, error, progress) {
+                $.ajax({
+                    method: "POST",
+                    url: "https://www3.onlinevideoconverter.com/webservice",
+                    data: {
+                        function: "validate",
+                        args: {
+                            urlEntryUser: url,
+                            fromConvert: "urlconverter",
+                            requestExt: "mp3",
+                            videoResolution: -1,
+                            audioBitrate: 0,
+                            audioFrequency: 0,
+                            channel: "stereo",
+                            volume: 0,
+                            startFrom: -1,
+                            endTo: -1,
+                            custom_resx: -1,
+                            custom_resy: -1,
+                            advSettings: false,
+                            aspectRatio: -1
+                        }
+                    },
+                    success: function(a) {
+                        var response = a.result;
+                        if (response.dPageId && response.dPageId.length > 2)
+                            return $.ajax({
+                                url: "https://www.onlinevideoconverter.com/nl/success?id=" + response.dPageId,
+                                success: function(b) {
+                                    finish(/\{'url': '([^']+)'/m.exec(b)[1]);
+                                }
+                            });
+                        else if (response.status == "ok")
+                            return finish(response.serverUrl + "/download?file=" + response.id_process);
+                        error(JSON.stringify(response));
+                    }
+                });
+            }
+
+
+        }, {
+
+
+
+            name: "convert2mp3.cc",
+            priority: 0,
+            subpriority: 0,
+            downloadFn: function download_convert2mp3(url, title, id, finish, error, progress) {
+                $.get("https://api.convert2mp3.cc/check.php?v=" + url.split("v=")[1].split("&")[0] + "&h=" + Math.floor(35e5 * Math.random()), function(t) {
+                    var o = t.split("|");
+                    if("OK" == o[0])
+                        return finish("http://dl" + o[1] + ".downloader.space/dl.php?id=" + o[2]);
+                    if(i > ((o[1] == "PENDING" || o[0] == "DOWNLOAD") ? 100 : 3))
+                        return error("timeout");
+                    setTimeout(function() {
+                        download_convert2mp3(url, title, id, finish, error, progress, i + 1);
+                    }, 5e3);
+                });
+            }
+
+
+
+        }
+    ];
+
+    var downloaderList = [];
+    for (const key of Object.keys(downloaders))
+        if (downloaderList.indexOf(downloaders[key].priority) == -1)
+            downloaderList.push(downloaders[key].priority);
+    downloaderList.sort(function(a, b) { return b - a; });
+    downloaderList.forEach(function(e, i) {
+        console.log(i, e);
+        downloaderList[i] = [];
+        for (const key of Object.keys(downloaders))
+            if (downloaders[key].priority == e)
+                downloaderList[i].push(downloaders[key]);
+    });
+
+
+
 })();
