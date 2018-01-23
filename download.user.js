@@ -60,7 +60,7 @@
             .sort(function(a, b) { return $(b).offset().top - $(a).offset().top; })
             .first();
         var infoContents = div.closest("[id='main']").find("[id='info-contents']");
-        if (div.length && infoContents.length, div.find("paper-button").length) {
+        if (div.length && infoContents.length && div.find("paper-button").length) {
             div.before(button);
             subButton = div;
             topPos = {
