@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      3.1.0
+// @version      3.1.1
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -63,7 +63,7 @@
             subButton = div;
             topPos = {
                 marginTop: infoContents.offset().top - subButton.offset().top + 7 + "px",
-                marginRight: -subButton.width() + "px"
+                marginRight: $("#subscribe-button paper-button").offset().left - $("#subscribe-button").offset().left - subButton.width() + "px"
             };
             moveButton(0);
             button.closest("ytd-watch").attrchange({callback: function() {
