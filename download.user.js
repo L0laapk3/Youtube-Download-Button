@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      3.1.3
+// @version      3.2.0
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -40,7 +40,7 @@
         if (location.href.indexOf("watch") == -1) return;
         clearInterval(checkInt);
         // <span>⯆</span>
-        button = $('<div id="downloadbutton" style="background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer;font-size: 14px;height: 33px;line-height: 33px;padding: 0 15px;font-weight: 500; margin-top: 7px;z-index: 1;">Download MP3</div>');
+        button = $('<div id="downloadbutton" style="background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer;font-size: 14px;height: 33px;line-height: 33px;padding: 0 15px;font-weight: 500; margin-top: 7px;z-index: 1;position: relative;">Download MP3<div style="border-bottom: 2px;border-bottom-left-radius: 2px;border-bottom-right-radius: 2px;position: absolute;bottom: -2px;width: calc(100% + 4px);left: -2px;overflow: hidden;"><div id="downloadprogressbar" style="background-color: dodgerblue;height: 2px;width: 0;"></div></div></div>');
         button.one("click", download);
         waitForDiv();
         var url = window.location.href;
@@ -104,6 +104,7 @@
         var abortFn = [];
         var done = false;
         var highestProgress = [];
+        var lastProgress = -1;
         downloaderList.forEach(function(e, i) {
             left.push(e.length);
             finishFn.push([]);
@@ -117,6 +118,7 @@
                     if (!first) return;
 
                     if (lowestNonFail == i && !done) {
+                        var fullDownloadProgessBar = undefined;
                         var thisAbort = finish(dlUrl, title, function() {
                             error("invalid download url");
                         }, function(a) {
@@ -125,7 +127,9 @@
                                 abortFn.splice(abortFn.indexOf(thisAbort), 1);
                                 abortFn.forEach(function(e) { e(); });
                             }
-                            highestProgress[i] = Math.max(highestProgress[i] || 0, allProgress[j] = 50 + a.done * 50 / a.total);
+                            if (!fullDownloadProgessBar)
+                                fullDownloadProgessBar = (lastProgress > 1) ? 50 : 100;
+                            highestProgress[i] = Math.max(highestProgress[i] || 0, allProgress[j] = 100 - fullDownloadProgessBar + a.done * fullDownloadProgessBar / a.total);
                             progress(allProgress[j], dler.name);
                         });
                         abortFn.push(thisAbort);
@@ -133,7 +137,9 @@
 
                 }, error, function(prog) { 
                     highestProgress[i] = Math.max(highestProgress[i] || 0, allProgress[j] = prog);
-                    progress(prog, dler.name);
+                    if (lowestNonFail == i && !done) {
+                        progress(lastProgress = highestProgress[i], dler.name);
+                    }
                 });
 
 
@@ -146,10 +152,10 @@
                                 return downloadError(errors);
                         } while (!left[++lowestNonFail]);
                         if (lowestNonFail == i && !done)
-                            progress(highestProgress[lowestNonFail]);
+                            progress(lastProgress = highestProgress[lowestNonFail]);
                     } else if (lowestNonFail == i && !done) {
                         allProgress[j] = -1;
-                        progress(highestProgress[i] = allProgress.reduce(function(a, b) { return Math.max(a, b); }));
+                        progress(lastProgress = highestProgress[i] = allProgress.reduce(function(a, b) { return Math.max(a, b); }));
                     }
                 }
 
@@ -175,6 +181,8 @@
 
     function progress(i, name) {
         console.log("progress", i, name);
+        if (button)
+            button.find("#downloadprogressbar").css({width: i == -1 ? 0 : i + "%"});
     }
 
 
@@ -185,7 +193,6 @@
         console.log("real title:", title);
         console.log("trying url:", downloadUrl);
 
-
         var first = true;
         var dlObject = GM_download({
             url: downloadUrl,
@@ -194,6 +201,7 @@
                 console.log("success!");
                 button.css({cursor: "default"});
                 button.children("paper-spinner-lite").remove();
+                progress(-1);
             },
             onprogress: onprogress,
             onerror: error
@@ -208,7 +216,7 @@
 
     function moveButton(delay) {
         if (!subButton || !button || !topPos) return;
-        if ($(document).scrollTop() + window.innerHeight <= subButton.offset().top + subButton.innerHeight()) {
+        if ($(document).scrollTop() + window.innerHeight <= subButton.find("paper-button").offset().top + button.height() + 1) {
             if (isThere) return;
             button.animate(topPos, {queue: false, easing: "easeInOut", duration: delay});
             isThere = true;
