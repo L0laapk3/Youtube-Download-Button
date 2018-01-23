@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      3.0.2
+// @version      3.0.3
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -52,7 +52,6 @@
     }
 
     function waitForDiv(i) {
-        if (i > 50) return;
         var div = $("[id='subscribe-button']")
             .filter(function(e) { return !$("ytd-search").find(e).length; })
             .filter(function(i, e) { return $(e).offset().top - $("body").offset().top; })
@@ -64,8 +63,8 @@
             div.before(button);
             subButton = div;
             topPos = {
-                marginTop: infoContents.offset().top - button.offset().top + 7 + "px",
-                marginRight: button.offset().left + button.outerWidth()  - subButton.offset().left - subButton.outerWidth() + "px"
+                marginTop: infoContents.offset().top - subButton.offset().top + 7 + "px",
+                marginRight: -subButton.width() + "px"
             };
             moveButton(0);
             button.closest("ytd-watch").attrchange({callback: function() {
@@ -77,7 +76,7 @@
                 else
                     hasScrolled();
             }});
-        } else
+        } else if ((i || 0) < 50)
             setTimeout(function() { waitForDiv(i + 1 || 1); }, 50);
     }
 
