@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      3.0.3
+// @version      3.1.0
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -58,7 +58,6 @@
             .sort(function(a, b) { return $(b).offset().top - $(a).offset().top; })
             .first();
         var infoContents = div.closest("[id='main']").find("[id='info-contents']");
-        console.log(div, infoContents);
         if (div.length && infoContents.length) {
             div.before(button);
             subButton = div;
@@ -68,7 +67,6 @@
             };
             moveButton(0);
             button.closest("ytd-watch").attrchange({callback: function() {
-                console.log(lastdl, button.closest("ytd-watch").attr("video-id"));
                 if ((!button || !button.offset() || !(button.offset().top - $("body").offset().top)) && location.href.indexOf("watch") > -1)
                     init();
                 else if (lastdl && lastdl != button.closest("ytd-watch").attr("video-id"))
@@ -89,7 +87,7 @@
         button.css({cursor: "progress"}).prepend("<paper-spinner-lite style='margin: 2.5px 6px -9.5px -10px;' active>");
         var id = lastdl = button.closest("ytd-watch").attr("video-id");
         var url = "https://www.youtube.com/watch?v=" + id;
-        var title = button.closest("[id='main']").find("[id='info-contents']").find(".title").text();
+        var title = button.closest("[id='main']").find("[id='info-contents']").find(".title").text().replace(/[\\\/:*?<>|]|^ | $|\.$|\n\n|\r/g, '');
 
 
 
@@ -97,17 +95,28 @@
         var lowestNonFail = 0;
         var errors = {};
         var finishFn = [];
+        var abortFn = [];
+        var done = false;
         downloaderList.forEach(function(e, i) {
             left.push(e.length);
             finishFn.push([]);
             console.log(i, e);
             e.forEach(function(dler, j) {
+                var first = true;
                 dler.downloadFn(url, title, id, function(dlUrl) {
 
-                    if (lowestNonFail == i) {
-                        finish(dlUrl, title, function() {
+                    if (!first) return;
+
+                    if (lowestNonFail == i && !done) {
+                        var thisAbort = finish(dlUrl, title, function() {
                             error("invalid download url");
+                        }, function(prog) {
+                            if (!first) return;
+                            first = false;
+                            abortFn.splice(abortFn.indexOf(thisAbort), 1);
+                            abortFn.forEach(function(e) { e(); });
                         });
+                        abortFn.push(thisAbort);
                     }
 
                 }, error, function(prog) { progress(prog); });
@@ -150,13 +159,14 @@
 
 
 
-    function finish(downloadUrl, title, error) {
+    function finish(downloadUrl, title, error, started) {
 
         console.log("real title:", title);
         console.log("trying url:", downloadUrl);
 
 
-        GM_download({
+        var first = true;
+        var dlObject = GM_download({
             url: downloadUrl,
             name: title + ".mp3",
             onload: function(a) {
@@ -164,9 +174,16 @@
                 button.css({cursor: "default"});
                 button.children("paper-spinner-lite").remove();
             },
-            onprogress: function(a, b) {console.log("progress", a, b); },
+            onprogress: function(i) {
+                if (first) {
+                    started();
+                    first = false;
+                }
+                progress(i);
+            },
             onerror: error
         });
+        return dlObject.abort;
     }
 
     $(document).scroll(hasScrolled);
@@ -331,7 +348,7 @@
             name: "convert2mp3.cc",
             priority: 0,
             subpriority: 0,
-            downloadFn: function download_convert2mp3(url, title, id, finish, error, progress) {
+            downloadFn: function download_convert2mp3(url, title, id, finish, error, progress, i) {
                 $.get("https://api.convert2mp3.cc/check.php?v=" + url.split("v=")[1].split("&")[0] + "&h=" + Math.floor(35e5 * Math.random()), function(t) {
                     var o = t.split("|");
                     if("OK" == o[0])
@@ -339,7 +356,7 @@
                     if(i > ((o[1] == "PENDING" || o[0] == "DOWNLOAD") ? 100 : 3))
                         return error("timeout");
                     setTimeout(function() {
-                        download_convert2mp3(url, title, id, finish, error, progress, i + 1);
+                        download_convert2mp3(url, title, id, finish, error, progress, i + 1 || 1);
                     }, 5e3);
                 });
             }
