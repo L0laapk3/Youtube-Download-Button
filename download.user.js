@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      3.1.1
+// @version      3.1.2
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -21,7 +21,7 @@
 
     var lasturl = "";
 
-    var lastdl;
+    var lastId;
 
     function check() {
         if (location.href == lasturl) return;
@@ -32,25 +32,27 @@
 
 
     function init() {
-        if (lastdl && lastdl == button.closest("ytd-watch").attr("video-id")) return;
-        console.warn("init!" + lasturl);
+        if (lastId && button && lastId == button.closest("ytd-watch").attr("video-id")) return;
+        console.warn("init!", lasturl);
         subButton = topPos = undefined;
         isThere = false;
         if (button) button.remove();
         if (location.href.indexOf("watch") == -1) return;
         clearInterval(checkInt);
+        // <span>⯆</span>
         button = $('<div id="downloadbutton" style="background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer;font-size: 14px;height: 33px;line-height: 33px;padding: 0 15px;font-weight: 500; margin-top: 7px;z-index: 1;">Download MP3</div>');
         button.one("click", download);
         waitForDiv();
         var url = window.location.href;
-        setInterval(function() {
+        /*setTimeout(function() {
             if (window.location.href != url) {
                 url = window.location.href;
                 waitForDiv();
             }
-        }, 1000);
+        }, 1000);*/
     }
 
+    var happened = false;
     function waitForDiv(i) {
         var div = $("[id='subscribe-button']")
             .filter(function(e) { return !$("ytd-search").find(e).length; })
@@ -63,13 +65,17 @@
             subButton = div;
             topPos = {
                 marginTop: infoContents.offset().top - subButton.offset().top + 7 + "px",
-                marginRight: $("#subscribe-button paper-button").offset().left - $("#subscribe-button").offset().left - subButton.width() + "px"
+                marginRight: subButton.find("paper-button").offset().left - subButton.offset().left - subButton.width() + "px"
             };
+            lastId = button.closest("ytd-watch").attr("video-id");
             moveButton(0);
             button.closest("ytd-watch").attrchange({callback: function() {
+                if (happened) return;
+                happened = true;
+                setTimeout(function() { happened = false; }, 0);
                 if ((!button || !button.offset() || !(button.offset().top - $("body").offset().top)) && location.href.indexOf("watch") > -1)
                     init();
-                else if (lastdl && lastdl != button.closest("ytd-watch").attr("video-id"))
+                else if (lastId && lastId != button.closest("ytd-watch").attr("video-id"))
                     init();
                 else
                     hasScrolled();
@@ -85,7 +91,7 @@
 
 
         button.css({cursor: "progress"}).prepend("<paper-spinner-lite style='margin: 2.5px 6px -9.5px -10px;' active>");
-        var id = lastdl = button.closest("ytd-watch").attr("video-id");
+        var id = button.closest("ytd-watch").attr("video-id");
         var url = "https://www.youtube.com/watch?v=" + id;
         var title = button.closest("[id='main']").find("[id='info-contents']").find(".title").text().replace(/[\\\/:*?<>|]|^ | $|\.$|\n\n|\r/g, '');
 
@@ -100,7 +106,6 @@
         downloaderList.forEach(function(e, i) {
             left.push(e.length);
             finishFn.push([]);
-            console.log(i, e);
             e.forEach(function(dler, j) {
                 var first = true;
                 dler.downloadFn(url, title, id, function(dlUrl) {
@@ -193,7 +198,6 @@
 
     function moveButton(delay) {
         if (!subButton || !button || !topPos) return;
-        window.topPos = topPos;
         if ($(document).scrollTop() + window.innerHeight <= subButton.offset().top + subButton.innerHeight()) {
             if (isThere) return;
             button.animate(topPos, {queue: false, easing: "easeInOut", duration: delay});
@@ -245,7 +249,6 @@
                             return finish("http://www.flvto.biz/nl/download/direct/mp3/yt_" + url.split("=")[1] + "/");
 
                         var statusUrl = "http://www.flvto.biz" + match[2].replace(/\\/g, '');
-                        console.log(statusUrl);
 
                         var i = 0, lastProgress = 0;
                         function checkStatus() {
@@ -372,7 +375,6 @@
             downloaderList.push(downloaders[key].priority);
     downloaderList.sort(function(a, b) { return b - a; });
     downloaderList.forEach(function(e, i) {
-        console.log(i, e);
         downloaderList[i] = [];
         for (const key of Object.keys(downloaders))
             if (downloaders[key].priority == e)
