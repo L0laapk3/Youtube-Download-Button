@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      3.0.1
+// @version      3.0.2
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -34,7 +34,7 @@
     function init() {
         if (lastdl && lastdl == button.closest("ytd-watch").attr("video-id")) return;
         console.warn("init!" + lasturl);
-        subButton = undefined;
+        subButton = topPos = undefined;
         isThere = false;
         if (button) button.remove();
         if (location.href.indexOf("watch") == -1) return;
@@ -51,34 +51,34 @@
         }, 1000);
     }
 
-    function waitForDiv() {
+    function waitForDiv(i) {
+        if (i > 50) return;
         var div = $("[id='subscribe-button']")
             .filter(function(e) { return !$("ytd-search").find(e).length; })
             .filter(function(i, e) { return $(e).offset().top - $("body").offset().top; })
             .sort(function(a, b) { return $(b).offset().top - $(a).offset().top; })
             .first();
-        if (div.length > 0)
-            setTimeout(function() {
-                div.before(button);
-                subButton = div;
-                var infoContents = button.closest("[id='main']").find("[id='info-contents']");
-                if (!topPos) topPos = {
-                    marginTop: infoContents.offset().top - button.offset().top + 7 + "px",
-                    marginRight: button.offset().left + button.outerWidth() - subButton.offset().left - subButton.outerWidth() + "px"
-                };
-                moveButton(0);
-                button.closest("ytd-watch").attrchange({callback: function() {
-                    console.log(lastdl, button.closest("ytd-watch").attr("video-id"));
-                    if ((!button || !button.offset() || !(button.offset().top - $("body").offset().top)) && location.href.indexOf("watch") > -1)
-                        init();
-                    else if (lastdl && lastdl != button.closest("ytd-watch").attr("video-id"))
-                        init();
-                    else
-                        hasScrolled();
-                }});
-            }, 100);
-        else
-            setTimeout(waitForDiv, 100);
+        var infoContents = div.closest("[id='main']").find("[id='info-contents']");
+        console.log(div, infoContents);
+        if (div.length && infoContents.length) {
+            div.before(button);
+            subButton = div;
+            topPos = {
+                marginTop: infoContents.offset().top - button.offset().top + 7 + "px",
+                marginRight: button.offset().left + button.outerWidth()  - subButton.offset().left - subButton.outerWidth() + "px"
+            };
+            moveButton(0);
+            button.closest("ytd-watch").attrchange({callback: function() {
+                console.log(lastdl, button.closest("ytd-watch").attr("video-id"));
+                if ((!button || !button.offset() || !(button.offset().top - $("body").offset().top)) && location.href.indexOf("watch") > -1)
+                    init();
+                else if (lastdl && lastdl != button.closest("ytd-watch").attr("video-id"))
+                    init();
+                else
+                    hasScrolled();
+            }});
+        } else
+            setTimeout(function() { waitForDiv(i + 1 || 1); }, 50);
     }
 
 
