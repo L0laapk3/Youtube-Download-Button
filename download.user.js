@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      3.0.0
+// @version      3.0.1
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -84,10 +84,13 @@
 
     console.log(downloaderList);
     function download() {
+
+
+
         button.css({cursor: "progress"}).prepend("<paper-spinner-lite style='margin: 2.5px 6px -9.5px -10px;' active>");
         var id = lastdl = button.closest("ytd-watch").attr("video-id");
         var url = "https://www.youtube.com/watch?v=" + id;
-        var title = button.closest("[id='main']").find(".title").text();
+        var title = button.closest("[id='main']").find("[id='info-contents']").find(".title").text();
 
 
 
@@ -118,7 +121,7 @@
                             lowestNonFail++;
                             if (lowestNonFail >= left.length)
                                 return downloadError(errors);
-                        } while (!left[++lowestNonFail])
+                        } while (!left[++lowestNonFail]);
                 }
 
 
@@ -127,10 +130,10 @@
         });
     }
 
-            
 
 
-            
+
+
 
     function downloadError(errors) {
         string = "download error :(";
@@ -144,6 +147,7 @@
     function progress(i) {
         console.log("progress:", i);
     }
+
 
 
 
@@ -161,6 +165,7 @@
                 button.css({cursor: "default"});
                 button.children("paper-spinner-lite").remove();
             },
+            onprogress: function(a, b) {console.log("progress", a, b); },
             onerror: error
         });
     }
