@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      3.1.2
+// @version      3.1.3
 // @author       L0laapk3
 // @match        https://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -33,7 +33,7 @@
 
     function init() {
         if (lastId && button && lastId == button.closest("ytd-watch").attr("video-id")) return;
-        console.warn("init!", lasturl);
+        console.warn("init!", lastId);
         subButton = topPos = undefined;
         isThere = false;
         if (button) button.remove();
@@ -60,7 +60,7 @@
             .sort(function(a, b) { return $(b).offset().top - $(a).offset().top; })
             .first();
         var infoContents = div.closest("[id='main']").find("[id='info-contents']");
-        if (div.length && infoContents.length) {
+        if (div.length && infoContents.length, div.find("paper-button").length) {
             div.before(button);
             subButton = div;
             topPos = {
@@ -103,11 +103,15 @@
         var finishFn = [];
         var abortFn = [];
         var done = false;
+        var highestProgress = [];
         downloaderList.forEach(function(e, i) {
             left.push(e.length);
             finishFn.push([]);
+            highestProgress[i] = -1;
+            var allProgress = [];
             e.forEach(function(dler, j) {
                 var first = true;
+                allProgress[j] = -1;
                 dler.downloadFn(url, title, id, function(dlUrl) {
 
                     if (!first) return;
@@ -115,26 +119,38 @@
                     if (lowestNonFail == i && !done) {
                         var thisAbort = finish(dlUrl, title, function() {
                             error("invalid download url");
-                        }, function(prog) {
-                            if (!first) return;
-                            first = false;
-                            abortFn.splice(abortFn.indexOf(thisAbort), 1);
-                            abortFn.forEach(function(e) { e(); });
+                        }, function(a) {
+                            if (first) {
+                                first = false;
+                                abortFn.splice(abortFn.indexOf(thisAbort), 1);
+                                abortFn.forEach(function(e) { e(); });
+                            }
+                            highestProgress[i] = Math.max(highestProgress[i] || 0, allProgress[j] = 50 + a.done * 50 / a.total);
+                            progress(allProgress[j], dler.name);
                         });
                         abortFn.push(thisAbort);
                     }
 
-                }, error, function(prog) { progress(prog); });
+                }, error, function(prog) { 
+                    highestProgress[i] = Math.max(highestProgress[i] || 0, allProgress[j] = prog);
+                    progress(prog, dler.name);
+                });
 
 
                 function error(err) {
                     errors[dler.name] = err;
-                    if (--left[i] == 0)
+                    if (--left[i] == 0) {
                         do {
                             lowestNonFail++;
                             if (lowestNonFail >= left.length)
                                 return downloadError(errors);
                         } while (!left[++lowestNonFail]);
+                        if (lowestNonFail == i && !done)
+                            progress(highestProgress[lowestNonFail]);
+                    } else if (lowestNonFail == i && !done) {
+                        allProgress[j] = -1;
+                        progress(highestProgress[i] = allProgress.reduce(function(a, b) { return Math.max(a, b); }));
+                    }
                 }
 
 
@@ -157,14 +173,14 @@
     }
 
 
-    function progress(i) {
-        console.log("progress:", i);
+    function progress(i, name) {
+        console.log("progress", i, name);
     }
 
 
 
 
-    function finish(downloadUrl, title, error, started) {
+    function finish(downloadUrl, title, error, onprogress) {
 
         console.log("real title:", title);
         console.log("trying url:", downloadUrl);
@@ -179,13 +195,7 @@
                 button.css({cursor: "default"});
                 button.children("paper-spinner-lite").remove();
             },
-            onprogress: function(i) {
-                if (first) {
-                    started();
-                    first = false;
-                }
-                progress(i);
-            },
+            onprogress: onprogress,
             onerror: error
         });
         return dlObject.abort;
