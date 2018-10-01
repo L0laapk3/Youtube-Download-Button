@@ -1,18 +1,19 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      3.2.1
+// @version      4.0.0
 // @author       L0laapk3
-// @match        https://www.youtube.com/*
+// @match        *://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
 // @require      https://cdn.rawgit.com/meetselva/attrchange/master/js/attrchange.js
 // @updateURL    https://rawgit.com/L0laapk3/Youtube-Download-Button/master/download.user.js
 // @downloadURL  https://rawgit.com/L0laapk3/Youtube-Download-Button/master/download.user.js
-// @grant        GM_xmlhttpRequest
-// @grant        GM_download
+// @grant        GM.download
+// @grant        GM.xmlHttpRequest
 // @run-at       document-start
+// @connect      example.com
+// @connect      example.net
 // @connect      flvto.biz
 // ==/UserScript==
-
 
 
 (function() {
@@ -32,7 +33,7 @@
 
 
     function init() {
-        if (lastId && button && lastId == button.closest("ytd-watch").attr("video-id")) return;
+        if (lastId && button && lastId == button.closest("ytd-watch, ytd-watch-flexy").attr("video-id")) return;
         console.warn("init!", lastId);
         subButton = topPos = undefined;
         isThere = false;
@@ -54,28 +55,28 @@
 
     var happened = false;
     function waitForDiv(i) {
-        var div = $("[id='subscribe-button']")
+        var div = $('#meta-contents [id="subscribe-button"]')
             .filter(function(e) { return !$("ytd-search").find(e).length; })
             .filter(function(i, e) { return $(e).offset().top - $("body").offset().top; })
             .sort(function(a, b) { return $(b).offset().top - $(a).offset().top; })
             .first();
-        var infoContents = div.closest("[id='main']").find("[id='info-contents']");
-        if (div.length && infoContents.length && div.find("paper-button").length) {
+        var infoContents = div.closest("[id='primary-inner']").find("[id='info-contents'] [id='container']");
+        if (div.length && div.find("paper-button").length && infoContents.length) {
             div.before(button);
             subButton = div;
             topPos = {
-                marginTop: infoContents.offset().top - subButton.offset().top + 7 + "px",
+                marginTop: infoContents.offset().top - subButton.offset().top + (24 - 37)/2 + "px",
                 marginRight: subButton.find("paper-button").offset().left - subButton.offset().left - subButton.width() + "px"
             };
-            lastId = button.closest("ytd-watch").attr("video-id");
+            lastId = button.closest("ytd-watch, ytd-watch-flexy").attr("video-id");
             moveButton(0);
-            button.closest("ytd-watch").attrchange({callback: function() {
+            button.closest("ytd-watch, ytd-watch-flexy").attrchange({callback: function() {
                 if (happened) return;
                 happened = true;
                 setTimeout(function() { happened = false; }, 0);
                 if ((!button || !button.offset() || !(button.offset().top - $("body").offset().top)) && location.href.indexOf("watch") > -1)
                     init();
-                else if (lastId && lastId != button.closest("ytd-watch").attr("video-id"))
+                else if (lastId && lastId != button.closest("ytd-watch, ytd-watch-flexy").attr("video-id"))
                     init();
                 else
                     hasScrolled();
@@ -85,15 +86,16 @@
     }
 
 
-    console.log(downloaderList);
     function download() {
 
 
 
         button.css({cursor: "progress"}).prepend("<paper-spinner-lite style='margin: 2.5px 6px -9.5px -10px;' active>");
-        var id = button.closest("ytd-watch").attr("video-id");
+        var id = button.closest("ytd-watch, ytd-watch-flexy").attr("video-id");
+        console.assert(id && id.length > 2, "could not extract youtube id");
         var url = "https://www.youtube.com/watch?v=" + id;
-        var title = button.closest("[id='main']").find("[id='info-contents']").find(".title").text().replace(/[\\\/:*?<>|]|^ | $|\.$|\n\n|\r/g, '');
+        var title = button.closest("[id='primary-inner']").find("[id='info-contents'] .title").text().replace(/[\\\/:*?<>|]|^ | $|\.$|\n\n|\r/g, '');
+        console.assert(title && title.length > 0, "could not extract youtube title");
 
 
 
@@ -113,11 +115,14 @@
             e.forEach(function(dler, j) {
                 var first = true;
                 allProgress[j] = -1;
-                dler.downloadFn(url, title, id, function(dlUrl) {
+                console.log("request download of ", dler);
+                setTimeout(function() { dler.downloadFn(url, title, id, function(dlUrl) {
+
+                    console.log("finished ", dler, dlUrl);
 
                     if (!first) return;
 
-                    if (lowestNonFail == i && !done) {
+                    function thisFinish() {
                         var fullDownloadProgessBar = undefined;
                         var thisAbort = finish(dlUrl, title, function() {
                             error("invalid download url");
@@ -135,29 +140,41 @@
                         abortFn.push(thisAbort);
                     }
 
-                }, error, function(prog) { 
+                    if (lowestNonFail == i && !done)
+                        thisFinish();
+                    else
+                        finishFn[i].push(thisFinish);
+
+                }, function(err) {
+
+                    if (done)
+                        return;
+                    console.log("errored ", dler);
+
+                    errors[dler.name] = err;
+                    if (--left[i] == 0) {
+                        while (!left[lowestNonFail]) {
+                            lowestNonFail++;
+                            if (lowestNonFail >= left.length)
+                                return downloadError(errors);
+                        }
+                        if (lowestNonFail < left.length) {
+                            if (finishFn[lowestNonFail].length)
+                                finishFn[lowestNonFail][0]();
+                            else
+                                progress(lastProgress = highestProgress[lowestNonFail]);
+                        }
+
+                    } else if (lowestNonFail == i) {
+                        allProgress[j] = -1;
+                        progress(lastProgress = highestProgress[i] = allProgress.reduce(function(a, b) { return Math.max(a, b); }));
+                    }
+                }, function(prog) {
                     highestProgress[i] = Math.max(highestProgress[i] || 0, allProgress[j] = prog);
                     if (lowestNonFail == i && !done) {
                         progress(lastProgress = highestProgress[i], dler.name);
                     }
-                });
-
-
-                function error(err) {
-                    errors[dler.name] = err;
-                    if (--left[i] == 0) {
-                        do {
-                            lowestNonFail++;
-                            if (lowestNonFail >= left.length)
-                                return downloadError(errors);
-                        } while (!left[++lowestNonFail]);
-                        if (lowestNonFail == i && !done)
-                            progress(lastProgress = highestProgress[lowestNonFail]);
-                    } else if (lowestNonFail == i && !done) {
-                        allProgress[j] = -1;
-                        progress(lastProgress = highestProgress[i] = allProgress.reduce(function(a, b) { return Math.max(a, b); }));
-                    }
-                }
+                }); }, 0);
 
 
             });
@@ -171,7 +188,7 @@
 
 
     function downloadError(errors) {
-        string = "download error :(";
+        var string = "download error :(";
         for (const key of Object.keys(errors))
             string += "\n" + key + ": " + errors[key];
         alert(string);
@@ -194,7 +211,7 @@
         console.log("trying url:", downloadUrl);
 
         var first = true;
-        var dlObject = GM_download({
+        var dlObject = GM.download({
             url: downloadUrl,
             name: title + ".mp3",
             onload: function(a) {
@@ -247,15 +264,12 @@
 
             name: "flvto.biz",
             priority: -1,
-            subpriority : -1,
             downloadFn: function(url, title, id, finish, error, progress) {
-                GM_xmlhttpRequest({
+                GM.xmlHttpRequest({
                     method: "POST",
-                    url: "http://www.flvto.biz/nl/convert/",
-                    data: "format=1&service=youtube&url=" + encodeURIComponent(url),
-                    headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                    },
+                    url: "https://www.flvto.biz/nl/convert/",
+                    data: "url=" + encodeURIComponent(url) + "&format=1&service=youtube",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
                     onload: function(a) {
                         if (a.status != 200)
                             return error(a.status);
@@ -318,10 +332,9 @@
         }, {
 
 
-
+//broken
             name: "onlinevideoconverter.com",
             priority: 1,
-            subpriority: 0,
             downloadFn: function(url, title, id, finish, error, progress) {
                 $.ajax({
                     method: "POST",
@@ -365,20 +378,23 @@
         }, {
 
 
-
+//broken
             name: "convert2mp3.cc",
             priority: 0,
-            subpriority: 0,
             downloadFn: function download_convert2mp3(url, title, id, finish, error, progress, i) {
-                $.get("https://api.convert2mp3.cc/check.php?v=" + url.split("v=")[1].split("&")[0] + "&h=" + Math.floor(35e5 * Math.random()), function(t) {
-                    var o = t.split("|");
-                    if("OK" == o[0])
-                        return finish("http://dl" + o[1] + ".downloader.space/dl.php?id=" + o[2]);
-                    if(i > ((o[1] == "PENDING" || o[0] == "DOWNLOAD") ? 100 : 3))
-                        return error("timeout");
-                    setTimeout(function() {
-                        download_convert2mp3(url, title, id, finish, error, progress, i + 1 || 1);
-                    }, 5e3);
+                $.ajax({
+                    url: "https://api.convert2mp3.net/check.php?v=" + url.split("v=")[1].split("&")[0] + "&h=" + Math.floor(35e5 * Math.random()),
+                    success: function(t) {
+                        var o = t.split("|");
+                        if("OK" == o[0])
+                            return finish("http://dl" + o[1] + ".downloader.space/dl.php?id=" + o[2]);
+                        if(i > ((o[1] == "PENDING" || o[0] == "DOWNLOAD") ? 100 : 3))
+                            return error("timeout");
+                        setTimeout(function() {
+                            download_convert2mp3(url, title, id, finish, error, progress, i + 1 || 1);
+                        }, 5e3);
+                    },
+                    error: function(e) { error(JSON.stringify(e)); }
                 });
             }
 
@@ -398,7 +414,7 @@
             if (downloaders[key].priority == e)
                 downloaderList[i].push(downloaders[key]);
     });
-
+    console.log(downloaderList);
 
 
 })();
