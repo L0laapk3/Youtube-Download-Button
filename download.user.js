@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      4.0.0
+// @version      4.0.1
 // @author       L0laapk3
 // @match        *://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -116,66 +116,74 @@
                 var first = true;
                 allProgress[j] = -1;
                 console.log("request download of ", dler);
-                setTimeout(function() { dler.downloadFn(url, title, id, function(dlUrl) {
+                setTimeout(function() {
+                    try {
+                        dler.downloadFn(url, title, id, function(dlUrl) {
 
-                    console.log("finished ", dler, dlUrl);
+                            console.log("finished ", dler, dlUrl);
 
-                    if (!first) return;
+                            if (!first) return;
 
-                    function thisFinish() {
-                        var fullDownloadProgessBar = undefined;
-                        var thisAbort = finish(dlUrl, title, function() {
-                            error("invalid download url");
-                        }, function(a) {
-                            if (first) {
-                                first = false;
-                                abortFn.splice(abortFn.indexOf(thisAbort), 1);
-                                abortFn.forEach(function(e) { e(); });
+                            function thisFinish() {
+                                var fullDownloadProgessBar = undefined;
+                                var thisAbort = finish(dlUrl, title, function() {
+                                    error("invalid download url");
+                                }, function(a) {
+                                    if (first) {
+                                        first = false;
+                                        abortFn.splice(abortFn.indexOf(thisAbort), 1);
+                                        abortFn.forEach(function(e) { e(); });
+                                    }
+                                    if (!fullDownloadProgessBar)
+                                        fullDownloadProgessBar = (lastProgress > 1) ? 50 : 100;
+                                    highestProgress[i] = Math.max(highestProgress[i] || 0, allProgress[j] = 100 - fullDownloadProgessBar + a.done * fullDownloadProgessBar / a.total);
+                                    progress(allProgress[j], dler.name);
+                                });
+                                abortFn.push(thisAbort);
                             }
-                            if (!fullDownloadProgessBar)
-                                fullDownloadProgessBar = (lastProgress > 1) ? 50 : 100;
-                            highestProgress[i] = Math.max(highestProgress[i] || 0, allProgress[j] = 100 - fullDownloadProgessBar + a.done * fullDownloadProgessBar / a.total);
-                            progress(allProgress[j], dler.name);
-                        });
-                        abortFn.push(thisAbort);
-                    }
 
-                    if (lowestNonFail == i && !done)
-                        thisFinish();
-                    else
-                        finishFn[i].push(thisFinish);
-
-                }, function(err) {
-
-                    if (done)
-                        return;
-                    console.log("errored ", dler);
-
-                    errors[dler.name] = err;
-                    if (--left[i] == 0) {
-                        while (!left[lowestNonFail]) {
-                            lowestNonFail++;
-                            if (lowestNonFail >= left.length)
-                                return downloadError(errors);
-                        }
-                        if (lowestNonFail < left.length) {
-                            if (finishFn[lowestNonFail].length)
-                                finishFn[lowestNonFail][0]();
+                            if (lowestNonFail == i && !done)
+                                thisFinish();
                             else
-                                progress(lastProgress = highestProgress[lowestNonFail]);
+                                finishFn[i].push(thisFinish);
+
+                        }, error, function(prog) {
+                            highestProgress[i] = Math.max(highestProgress[i] || 0, allProgress[j] = prog);
+                            if (lowestNonFail == i && !done) {
+                                progress(lastProgress = highestProgress[i], dler.name);
+                            }
+                        });
+                    } catch (err) {
+                        error(err);
+                    }
+
+
+                    function error(err) {
+
+                            if (done)
+                                return;
+                            console.log("errored ", dler);
+
+                            errors[dler.name] = err;
+                            if (--left[i] == 0) {
+                                while (!left[lowestNonFail]) {
+                                    lowestNonFail++;
+                                    if (lowestNonFail >= left.length)
+                                        return downloadError(errors);
+                                }
+                                if (lowestNonFail < left.length) {
+                                    if (finishFn[lowestNonFail].length)
+                                        finishFn[lowestNonFail][0]();
+                                    else
+                                        progress(lastProgress = highestProgress[lowestNonFail]);
+                                }
+
+                            } else if (lowestNonFail == i) {
+                                allProgress[j] = -1;
+                                progress(lastProgress = highestProgress[i] = allProgress.reduce(function(a, b) { return Math.max(a, b); }));
+                            }
                         }
-
-                    } else if (lowestNonFail == i) {
-                        allProgress[j] = -1;
-                        progress(lastProgress = highestProgress[i] = allProgress.reduce(function(a, b) { return Math.max(a, b); }));
-                    }
-                }, function(prog) {
-                    highestProgress[i] = Math.max(highestProgress[i] || 0, allProgress[j] = prog);
-                    if (lowestNonFail == i && !done) {
-                        progress(lastProgress = highestProgress[i], dler.name);
-                    }
-                }); }, 0);
-
+                }, 0);
 
             });
 
@@ -364,7 +372,12 @@
                             return $.ajax({
                                 url: "https://www.onlinevideoconverter.com/nl/success?id=" + response.dPageId,
                                 success: function(b) {
-                                    finish(/\{'url': '([^']+)'/m.exec(b)[1]);
+                                    console.log(b);
+                                    try {
+                                        finish(/\{'url': '([^']+)'/m.exec(b)[1]);
+                                    } catch (err) {
+                                        error(err);
+                                    }
                                 }
                             });
                         else if (response.status == "ok")
