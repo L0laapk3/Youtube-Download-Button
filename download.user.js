@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      4.0.1
+// @version      4.1.0
 // @author       L0laapk3
 // @match        *://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
