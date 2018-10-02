@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      4.2.0
+// @version      4.2.1
 // @author       L0laapk3
 // @match        *://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -10,8 +10,7 @@
 // @grant        GM.download
 // @grant        GM.xmlHttpRequest
 // @run-at       document-start
-// @connect      example.com
-// @connect      example.net
+// @connect      onlinevideoconverter.com
 // @connect      flvto.biz
 // ==/UserScript==
 
@@ -360,7 +359,7 @@
             name: "onlinevideoconverter.com",
             priority: 1,
             downloadFn: function(url, title, id, finish, error, progress) {
-                $.ajax({
+                GM_xmlhttpRequest({
                     method: "POST",
                     url: "https://www3.onlinevideoconverter.com/webservice",
                     data: {
@@ -382,22 +381,28 @@
                             aspectRatio: -1
                         }
                     },
-                    success: function(a) {
-                        var response = a.result;
-                        if (response.dPageId && response.dPageId.length > 2)
-                            return $.ajax({
-                                url: "https://www.onlinevideoconverter.com/nl/success?id=" + response.dPageId,
-                                success: function(b) {
-                                    try {
-                                        finish(/\{'url': '([^']+)'/m.exec(b)[1]);
-                                    } catch (err) {
-                                        error(err);
+                    onload: function(a) {
+                        if (a.status != 200)
+                            return error("status " + a.status);
+                        try {
+                            var response = JSON.parse(a.responseText);
+                            if (response.dPageId && response.dPageId.length > 2)
+                                return $.ajax({
+                                    url: "https://www.onlinevideoconverter.com/nl/success?id=" + response.dPageId,
+                                    success: function(b) {
+                                        try {
+                                            finish(/\{'url': '([^']+)'/m.exec(b)[1]);
+                                        } catch (err) {
+                                            error(err);
+                                        }
                                     }
-                                }
-                            });
-                        else if (response.status == "ok")
-                            return finish(response.serverUrl + "/download?file=" + response.id_process);
-                        error(JSON.stringify(response));
+                                });
+                            else if (response.status == "ok")
+                                return finish(response.serverUrl + "/download?file=" + response.id_process);
+                            error(JSON.stringify(response));
+                        } catch (err) {
+                            return error("json: " + err);
+                        }
                     }
                 });
             }
