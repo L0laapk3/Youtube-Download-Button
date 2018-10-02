@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      4.1.1
+// @version      4.2.0
 // @author       L0laapk3
 // @match        *://www.youtube.com/*
 // @require      http://code.jquery.com/jquery-1.12.4.min.js
@@ -10,6 +10,8 @@
 // @grant        GM.download
 // @grant        GM.xmlHttpRequest
 // @run-at       document-start
+// @connect      example.com
+// @connect      example.net
 // @connect      flvto.biz
 // ==/UserScript==
 
@@ -39,7 +41,7 @@
         if (location.href.indexOf("watch") == -1) return;
         clearInterval(checkInt);
         // <span>⯆</span>
-        button = $('<div id="downloadbutton">Download MP3<div><div id="downloadprogressbar"></div></div></div>');
+        button = $('<div id="downloadbutton">Download <span id="downloadtype">MP3</span><div id="downloadprogress"><div id="downloadprogressbar"></div></div></div>');
         button.one("click", download);
         waitForDiv();
         var url = window.location.href;
@@ -52,9 +54,15 @@
     }
 
     var node = document.createElement('style');
-    node.innerHTML = "#downloadbutton { transition: width 0.2s; background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer;font-size: 14px;height: 33px;line-height: 33px;padding: 0 15px;font-weight: 500; margin-top: 7px;z-index: 1;position: relative; }" +
-                     "#downloadbutton > div { border-bottom: 2px;border-bottom-left-radius: 2px;border-bottom-right-radius: 2px;position: absolute;bottom: -2px;width: calc(100% + 4px);left: -2px;overflow: hidden; }" +
-                     "#downloadprogressbar { background-color: dodgerblue;height: 2px;width: 0; }";
+    node.innerHTML = "#downloadbutton { transition: margin 0.2s; margin: auto; user-select: none; white-space: nowrap; text-transform: uppercase; background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer; font-size: 1.4rem; letter-spacing: .007px; height: 33px; line-height: 33px; padding: 0 15px; font-weight: 500; z-index: 1; position: relative; }" +
+                     "#downloadtype { margin-left: 4px; color: rgba(255, 255, 255, 0.85); }" +
+                     "#downloadtype > span { font-size: 1.05em; }" +
+                     "#downloadprogress { border-bottom: 2px; border-bottom-left-radius: 2px; border-bottom-right-radius: 2px; position: absolute ;bottom: -2px; width: 100%; left: -2px; overflow: hidden; padding: 0 4px 0 0; height: 2px; }" +
+                     "#downloadprogressbar { background-color: #4a8df8; height: 2px; width: 0; position: absolute; }" +
+                     "#downloadbutton.idle #downloadprogress:before, #downloadbutton.idle #downloadprogress:after { position: absolute; background: #4a8df8; height: 100%; content: ''; }" +
+                     "#downloadbutton.idle #downloadprogress:before { animation: increase 2s infinite; } #downloadbutton.idle #downloadprogress:after { animation: decrease 2s 0.5s infinite; }" +
+                     "@keyframes increase { from { left: -5%; width: 5%; } to { left: 130%; width: 100%;} } @keyframes decrease { from { left: -80%; width: 80%; } to { left: 110%; width: 10%;} }";
+
     document.head.append(node);
 
     var happened = false;
@@ -94,7 +102,7 @@
 
 
 
-        button.prepend("<paper-spinner-lite style='margin: 2.5px 6px -9.5px -10px;' active>")[0].style.cursor = "progress";
+        button.addClass("idle")[0].style.cursor = "progress";
         var id = button.closest("ytd-watch, ytd-watch-flexy").attr("video-id");
         console.assert(id && id.length > 2, "could not extract youtube id");
         var url = "https://www.youtube.com/watch?v=" + id;
@@ -210,8 +218,13 @@
 
     function progress(i, name) {
         console.log("progress", i, name);
-        if (button)
-            button.find("#downloadprogressbar").css({width: i == -1 ? 0 : i + "%"});
+        if (button) {
+            if (i == -1)
+                button.addClass("idle");
+            else
+                button.removeClass("idle");
+            button.find("#downloadprogressbar").css({width: i <= 0 ? 0 : i + "%"});
+        }
     }
 
 
@@ -229,8 +242,7 @@
             onload: function(a) {
                 console.log("success!");
                 button[0].style.cursor = "default";
-                button.children("paper-spinner-lite").remove();
-                progress(-1);
+                progress(-2);
             },
             onprogress: onprogress,
             onerror: error
@@ -247,11 +259,11 @@
         if (!subButton || !button || !topPos) return;
         if ($(document).scrollTop() + window.innerHeight <= subButton.find("paper-button").offset().top + button.height() + 1) {
             if (isThere) return;
-            button.animate(topPos, {queue: false, easing: "easeInOut", duration: delay});
+            button.css(topPos);
             isThere = true;
         } else {
             if (!isThere) return;
-            button.animate({marginTop: "7px", marginRight: 0}, {queue: false, easing: "easeInOut", duration: delay});
+            button.css({marginTop: "7px", marginRight: 0});
             isThere = false;
         }
     }
