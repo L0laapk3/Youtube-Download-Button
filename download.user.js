@@ -10,8 +10,6 @@
 // @grant        GM.download
 // @grant        GM.xmlHttpRequest
 // @run-at       document-start
-// @connect      example.com
-// @connect      example.net
 // @connect      flvto.biz
 // ==/UserScript==
 
