@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      5.1.0
+// @version      5.1.1
 // @author       L0laapk3
 // @match        *://www.youtube.com/*
 // @match        *://www.google.com/search*
@@ -275,7 +275,8 @@
             YTThumbList = YTThumbList.filter(thumb => !thumb.closest('a[href*="www.youtube.com"]').parentNode.parentNode.querySelector("downloadbutton"));
         for (let thumb of YTThumbList) {
             let url, title;
-            let button = $('<downloadbutton>Download <span class="downloadtype">MP3<span>&#9660;</span></span><downloadprogress><downloadprogressbar></downloadprogressbar></downloadprogress></downloadbutton>');
+            //<span>&#9660;</span>
+            let button = $('<downloadbutton>Download <span class="downloadtype">MP3</span><downloadprogress><downloadprogressbar></downloadprogressbar></downloadprogress></downloadbutton>');
             
             if (thumb.parentNode.nodeName == "A") {
                 let a = thumb.closest('a[href*="www.youtube.com"]');
@@ -308,7 +309,8 @@
         if (location.href.indexOf("watch") == -1) return;
         clearInterval(checkInt);
         // <span>⯆</span>
-        button = $('<downloadbutton>Download <span class="downloadtype">MP3<span>&#9660;</span></span><downloadprogress><downloadprogressbar></downloadprogressbar></downloadprogress></downloadbutton>');
+        // <span>&#9660;</span>
+        button = $('<downloadbutton>Download <span class="downloadtype">MP3</span><downloadprogress><downloadprogressbar></downloadprogressbar></downloadprogress></downloadbutton>');
         button.one("click", () => download(button, button.closest("ytd-watch, ytd-watch-flexy").attr("video-id"), button.closest("[id='primary-inner']").find("[id='info-contents'] .title").text().replace(/[\\\/:*?<>|]|^ | $|\.$|\n\n|\r/g, '')));
         waitForDiv(button);
         var url = window.location.href;
