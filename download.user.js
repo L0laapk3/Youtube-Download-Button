@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      5.0.1
+// @version      5.1.0
 // @author       L0laapk3
 // @match        *://www.youtube.com/*
 // @match        *://www.google.com/search*
@@ -219,14 +219,18 @@
 
     var lastId;
 
-    var youtube = document.URL.indexOf("google") < 0;
+    var youtube = window.location.hostname.indexOf("google") < 0;
     function check() {
         console.log("check");
         if (youtube) {
             if (location.href == lasturl) return;
             lasturl = location.href;
-            if (lasturl.indexOf("watch?v=")) initYT();
-        } else if (document.getElementById("resultStats")) initG();
+            if (window.location.pathname.indexOf("watch") >= 0) initYT();
+        } else if (document.getElementById("footcnt")) {
+            initG();
+            for (let i = 100; i < 2000; i += 100)
+                setTimeout(() => initG(true), i);
+        }
     }
 
     var checkInt = setInterval(check, 50);
@@ -241,41 +245,57 @@
 
 
     node = document.createElement('style');
-    if (youtube) node.innerHTML =
-        "#downloadbutton { transition: margin 0.2s; margin: auto; user-select: none; white-space: nowrap; text-transform: uppercase; background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer; font-size: 1.4rem; letter-spacing: .007px; height: 33px; line-height: 33px; padding: 0 15px; font-weight: 500; z-index: 1; position: relative; }" +
-        "#downloadtype { margin-left: 4px; color: rgba(255, 255, 255, 0.85); }" +
-        "#downloadtype > span { font-size: 1.05em; }" +
-        "#downloadprogress { border-bottom: 2px; border-bottom-left-radius: 2px; border-bottom-right-radius: 2px; position: absolute ;bottom: -2px; width: 100%; left: -2px; overflow: hidden; padding: 0 4px 0 0; height: 2px; }" +
-        "#downloadprogressbar { background-color: #4a8df8; height: 2px; width: 0; position: absolute; }" +
-        "#downloadbutton.idle #downloadprogress:before, #downloadbutton.idle #downloadprogress:after { position: absolute; background: #4a8df8; height: 100%; content: ''; }" +
-        "#downloadbutton.idle #downloadprogress:before { animation: increase 2s infinite; } #downloadbutton.idle #downloadprogress:after { animation: decrease 2s 0.5s infinite; }" +
-        "@keyframes increase { from { left: -5%; width: 5%; } to { left: 130%; width: 100%;} } @keyframes decrease { from { left: -80%; width: 80%; } to { left: 110%; width: 10%;} }";
-    else node.innerHTML =
+    node.innerHTML =
+    (youtube ? 
+        "downloadbutton { transition: margin 0.2s; margin: auto; user-select: none; white-space: nowrap; text-transform: uppercase; background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer; font-size: 1.4rem; letter-spacing: .007px; height: 33px; line-height: 33px; padding: 0 15px; font-weight: 500; z-index: 1; position: relative; }"
+    :
         "@import url('https://fonts.googleapis.com/css?family=Roboto:500');" +
-        "#downloadbutton { float: right; font-family: Roboto, Arial, sans-serif; transition: margin 0.2s; margin: auto; user-select: none; white-space: nowrap; text-transform: uppercase; background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer; font-size: 14px; letter-spacing: .007px; height: 33px; line-height: 33px; padding: 0 15px; font-weight: 500; z-index: 1; position: relative; }" +
-        "#downloadtype { margin-left: 4px; color: rgba(255, 255, 255, 0.85); }" +
-        "#downloadtype > span { font-size: 1.05em; }" +
-        "#downloadprogress { border-bottom: 2px; border-bottom-left-radius: 2px; border-bottom-right-radius: 2px; position: absolute ;bottom: -2px; width: 100%; left: -2px; overflow: hidden; padding: 0 4px 0 0; height: 2px; }" +
-        "#downloadprogressbar { background-color: #4a8df8; height: 2px; width: 0; position: absolute; }" +
-        "#downloadbutton.idle #downloadprogress:before, #downloadbutton.idle #downloadprogress:after { position: absolute; background: #4a8df8; height: 100%; content: ''; }" +
-        "#downloadbutton.idle #downloadprogress:before { animation: increase 2s infinite; } #downloadbutton.idle #downloadprogress:after { animation: decrease 2s 0.5s infinite; }" +
-        "@keyframes increase { from { left: -5%; width: 5%; } to { left: 130%; width: 100%;} } @keyframes decrease { from { left: -80%; width: 80%; } to { left: 110%; width: 10%;} }";
+        "downloadbutton { width: fit-content; margin-left: 5px; float: right; font-family: Roboto, Arial, sans-serif; transition: margin 0.2s; margin: auto; user-select: none; white-space: nowrap; text-transform: uppercase; background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer; font-size: 14px; letter-spacing: .007px; height: 33px; line-height: 33px; padding: 0 15px; font-weight: 500; z-index: 1; position: relative; }" +
+        "downloadbutton.miniature { margin: 3px auto 5px; float: none; }"
+    ) +
+    "downloadtype { margin-left: 4px; color: rgba(255, 255, 255, 0.85); }" +
+    "downloadtype > span { font-size: 1.05em; }" +
+    "downloadprogress { border-bottom: 2px; border-bottom-left-radius: 2px; border-bottom-right-radius: 2px; position: absolute ;bottom: -2px; width: 100%; left: -2px; overflow: hidden; padding: 0 4px 0 0; height: 2px; }" +
+    "downloadprogressbar { background-color: #4a8df8; height: 2px; width: 0; position: absolute; }" +
+    "downloadbutton.idle downloadprogress:before, downloadbutton.idle downloadprogress:after { position: absolute; background: #4a8df8; height: 100%; content: ''; }" +
+    "downloadbutton.idle downloadprogress:before { animation: increase 2s infinite; } downloadbutton.idle downloadprogress:after { animation: decrease 2s 0.5s infinite; }" +
+    "@keyframes increase { from { left: -5%; width: 5%; } to { left: 130%; width: 100%;} } @keyframes decrease { from { left: -80%; width: 80%; } to { left: 110%; width: 10%;} }";
 
     document.head.append(node);
 
 
-    function initG() {
+    let buttons;
+    function initG(keep) {
         let YTThumbList = [].slice.call(document.querySelectorAll('a[href*="www.youtube.com"] img')).sort((a, b) => b.height*b.width-a.height*a.width);
-        clearInterval(checkInt);
-        if (!YTThumbList.length) return;
-        let url = YTThumbList[0].parentNode.href;
-        let title = document.querySelectorAll('a[href*="www.youtube.com"] h3')[0].innerText.replace(/ - youtube$/gi, '');
-        // <span>⯆</span>
-
-        if (button) button.remove();
-        button = $('<div id="downloadbutton">Download <span id="downloadtype">MP3<span>&#9660;</span></span><div id="downloadprogress"><div id="downloadprogressbar"></div></div></div>');
-        button.one("click", () => download(url.split("=")[1], title));
-        button.prependTo(YTThumbList[0].parentNode.parentNode.parentNode.children[1]);
+        if (!keep) {
+            clearInterval(checkInt);
+            if (buttons) buttons.forEach(b => b.remove());
+            buttons = [];
+        } else
+            YTThumbList = YTThumbList.filter(thumb => !thumb.closest('a[href*="www.youtube.com"]').parentNode.parentNode.querySelector("downloadbutton"));
+        for (let thumb of YTThumbList) {
+            let url, title;
+            let button = $('<downloadbutton>Download <span class="downloadtype">MP3<span>&#9660;</span></span><downloadprogress><downloadprogressbar></downloadprogressbar></downloadprogress></downloadbutton>');
+            
+            if (thumb.parentNode.nodeName == "A") {
+                let a = thumb.closest('a[href*="www.youtube.com"]');
+                let titleEl = a.parentNode.parentNode.querySelector('a[href*="www.youtube.com"] h3');
+                url = a.href;
+                title = titleEl.innerText.replace(/ - youtube$/gi, '');
+                button.prependTo(a.parentNode.parentNode.children[1]);
+            } else if (thumb.parentNode.nodeName == "G-IMG") {
+                let a = thumb.closest('a[href*="www.youtube.com"]');
+                let titleEl = a.children[1];
+                url = a.href;
+                title = titleEl.innerText;
+                titleEl.children[0].style.webkitLineClamp = 3;
+                titleEl.children[0].style.maxHeight = "67px";
+                button.addClass("miniature").insertAfter(a);
+            }
+            
+            button.one("click", () => download(button, url.split("=")[1], title));
+            buttons.push(button);
+        }
     }
 
 
@@ -288,9 +308,9 @@
         if (location.href.indexOf("watch") == -1) return;
         clearInterval(checkInt);
         // <span>⯆</span>
-        button = $('<div id="downloadbutton">Download <span id="downloadtype">MP3<span>&#9660;</span></span><div id="downloadprogress"><div id="downloadprogressbar"></div></div></div>');
-        button.one("click", () => download(button.closest("ytd-watch, ytd-watch-flexy").attr("video-id"), button.closest("[id='primary-inner']").find("[id='info-contents'] .title").text().replace(/[\\\/:*?<>|]|^ | $|\.$|\n\n|\r/g, '')));
-        waitForDiv();
+        button = $('<downloadbutton>Download <span class="downloadtype">MP3<span>&#9660;</span></span><downloadprogress><downloadprogressbar></downloadprogressbar></downloadprogress></downloadbutton>');
+        button.one("click", () => download(button, button.closest("ytd-watch, ytd-watch-flexy").attr("video-id"), button.closest("[id='primary-inner']").find("[id='info-contents'] .title").text().replace(/[\\\/:*?<>|]|^ | $|\.$|\n\n|\r/g, '')));
+        waitForDiv(button);
         var url = window.location.href;
         /*setTimeout(function() {
             if (window.location.href != url) {
@@ -301,7 +321,7 @@
     }
 
     var happened = false;
-    function waitForDiv(i) {
+    function waitForDiv(button, i) {
         var div = $('#meta-contents [id="subscribe-button"]')
             .filter(function(e) { return !$("ytd-search").find(e).length; })
             .filter(function(i, e) { return $(e).offset().top - $("body").offset().top; })
@@ -329,11 +349,11 @@
                     hasScrolled();
             }});
         } else if ((i || 0) < 50)
-            setTimeout(function() { waitForDiv(i + 1 || 1); }, 50);
+            setTimeout(function() { waitForDiv(button, i + 1 || 1); }, 50);
     }
 
 
-    function download(id, title) {
+    function download(button, id, title) {
 
 
 
@@ -371,7 +391,7 @@
 
                             function thisFinish() {
                                 var fullDownloadProgessBar = undefined;
-                                var thisAbort = finish(dlUrl, title, function() {
+                                var thisAbort = finish(button, dlUrl, title, function() {
                                     error("invalid download url");
                                 }, function(a) {
                                     if (first) {
@@ -382,7 +402,7 @@
                                     if (!fullDownloadProgessBar)
                                         fullDownloadProgessBar = (lastProgress > 1) ? 50 : 100;
                                     highestProgress[i] = Math.max(highestProgress[i] || 0, allProgress[j] = 100 - fullDownloadProgessBar + a.done * fullDownloadProgessBar / a.total);
-                                    progress(allProgress[j], dler.name);
+                                    progress(button, allProgress[j], dler.name);
                                 });
                                 abortFn.push(thisAbort);
                             }
@@ -395,7 +415,7 @@
                         }, error, function(prog) {
                             highestProgress[i] = Math.max(highestProgress[i] || 0, allProgress[j] = prog);
                             if (lowestNonFail == i && !done) {
-                                progress(lastProgress = highestProgress[i], dler.name);
+                                progress(button, lastProgress = highestProgress[i], dler.name);
                             }
                         });
                     } catch (err) {
@@ -420,12 +440,12 @@
                                     if (finishFn[lowestNonFail].length)
                                         finishFn[lowestNonFail][0]();
                                     else
-                                        progress(lastProgress = highestProgress[lowestNonFail]);
+                                        progress(button, lastProgress = highestProgress[lowestNonFail]);
                                 }
 
                             } else if (lowestNonFail == i) {
                                 allProgress[j] = -1;
-                                progress(lastProgress = highestProgress[i] = allProgress.reduce(function(a, b) { return Math.max(a, b); }));
+                                progress(button, lastProgress = highestProgress[i] = allProgress.reduce(function(a, b) { return Math.max(a, b); }));
                             }
                         }
                 }, 0);
@@ -442,28 +462,31 @@
 
     function downloadError(errors) {
         var string = "download error :(";
-        for (const key of Object.keys(errors))
+        for (const key of Object.keys(errors)) {
+            console.warn(key, errors[key]);
             string += "\n" + key + ": " + errors[key];
+        }
         alert(string);
         youtube ? initYT() : initG();
     }
 
 
-    function progress(i, name) {
-        console.log("progress", i, name);
+    function progress(button, i, name) {
+        console.log("progress", i, name, button);
         if (button) {
             if (i == -1)
                 button.addClass("idle");
             else
                 button.removeClass("idle");
-            button.find("#downloadprogressbar").css({width: i <= 0 ? 0 : i + "%"});
+            console.log(window.tmp = button.find("downloadprogressbar"));
+            button.find("downloadprogressbar").css({width: i <= 0 ? 0 : i + "%"});
         }
     }
 
 
 
 
-    function finish(downloadUrl, title, error, onprogress) {
+    function finish(button, downloadUrl, title, error, onprogress) {
 
         console.log("real title:", title);
         console.log("trying url:", downloadUrl);
@@ -475,7 +498,7 @@
             onload: function(a) {
                 console.log("success!");
                 button[0].style.cursor = "default";
-                progress(-2);
+                progress(button, -2);
             },
             onprogress: onprogress,
             onerror: error
@@ -483,30 +506,33 @@
         return dlObject.abort;
     }
 
-    $(document).scroll(hasScrolled);
 
-    function hasScrolled() { moveButton(200); }
-    var isThere = false;
+    if (youtube) {
+        $(document).scroll(hasScrolled);
 
-    function moveButton(delay) {
-        if (!subButton || !button || !topPos) return;
-        if ($(document).scrollTop() + window.innerHeight <= subButton.find("paper-button").offset().top + button.height() + 1) {
-            if (isThere) return;
-            button.css(topPos);
-            isThere = true;
-        } else {
-            if (!isThere) return;
-            button.css({marginTop: "7px", marginRight: 0});
-            isThere = false;
+        function hasScrolled() { moveButton(200); }
+        var isThere = false;
+
+        function moveButton(delay) {
+            if (!subButton || !button || !topPos) return;
+            if ($(document).scrollTop() + window.innerHeight <= subButton.find("paper-button").offset().top + button.height() + 1) {
+                if (isThere) return;
+                button.css(topPos);
+                isThere = true;
+            } else {
+                if (!isThere) return;
+                button.css({marginTop: "7px", marginRight: 0});
+                isThere = false;
+            }
         }
     }
+
     $.extend($.easing, {
         easeInOut: function (x, t, b, c, d) {
             if ((t/=d/2) < 1) return c/2*t*t*t*t + b;
             return -c/2 * ((t-=2)*t*t*t - 2) + b;
         }
     });
-
 
 
 
