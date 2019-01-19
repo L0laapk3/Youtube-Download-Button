@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      5.1.1
+// @version      5.1.2
 // @author       L0laapk3
 // @match        *://www.youtube.com/*
 // @match        *://www.google.com/search*
@@ -266,26 +266,26 @@
 
     let buttons;
     function initG(keep) {
-        let YTThumbList = [].slice.call(document.querySelectorAll('a[href*="www.youtube.com"] img')).sort((a, b) => b.height*b.width-a.height*a.width);
+        let YTThumbList = [].slice.call(document.querySelectorAll('a[href^="https://www.youtube.com"] img')).sort((a, b) => b.height*b.width-a.height*a.width);
         if (!keep) {
             clearInterval(checkInt);
             if (buttons) buttons.forEach(b => b.remove());
             buttons = [];
         } else
-            YTThumbList = YTThumbList.filter(thumb => !thumb.closest('a[href*="www.youtube.com"]').parentNode.parentNode.querySelector("downloadbutton"));
+            YTThumbList = YTThumbList.filter(thumb => !thumb.closest('a[href^="https://www.youtube.com"]').parentNode.parentNode.querySelector("downloadbutton"));
         for (let thumb of YTThumbList) {
             let url, title;
             //<span>&#9660;</span>
             let button = $('<downloadbutton>Download <span class="downloadtype">MP3</span><downloadprogress><downloadprogressbar></downloadprogressbar></downloadprogress></downloadbutton>');
             
             if (thumb.parentNode.nodeName == "A") {
-                let a = thumb.closest('a[href*="www.youtube.com"]');
-                let titleEl = a.parentNode.parentNode.querySelector('a[href*="www.youtube.com"] h3');
+                let a = thumb.closest('a[href^="https://www.youtube.com"]');
+                let titleEl = a.parentNode.parentNode.querySelector('a[href^="https://www.youtube.com"] h3');
                 url = a.href;
                 title = titleEl.innerText.replace(/ - youtube$/gi, '');
                 button.prependTo(a.parentNode.parentNode.children[1]);
             } else if (thumb.parentNode.nodeName == "G-IMG") {
-                let a = thumb.closest('a[href*="www.youtube.com"]');
+                let a = thumb.closest('a[href^="https://www.youtube.com"]');
                 let titleEl = a.children[1];
                 url = a.href;
                 title = titleEl.innerText;
