@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      5.1.2
+// @version      5.1.3
 // @author       L0laapk3
 // @match        *://www.youtube.com/*
 // @match        *://www.google.com/search*
@@ -246,7 +246,7 @@
 
     node = document.createElement('style');
     node.innerHTML =
-    (youtube ? 
+    (youtube ?
         "downloadbutton { transition: margin 0.2s; margin: auto; user-select: none; white-space: nowrap; text-transform: uppercase; background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer; font-size: 1.4rem; letter-spacing: .007px; height: 33px; line-height: 33px; padding: 0 15px; font-weight: 500; z-index: 1; position: relative; }"
     :
         "@import url('https://fonts.googleapis.com/css?family=Roboto:500');" +
@@ -277,15 +277,21 @@
             let url, title;
             //<span>&#9660;</span>
             let button = $('<downloadbutton>Download <span class="downloadtype">MP3</span><downloadprogress><downloadprogressbar></downloadprogressbar></downloadprogress></downloadbutton>');
-            
+
             if (thumb.parentNode.nodeName == "A") {
                 let a = thumb.closest('a[href^="https://www.youtube.com"]');
+                let insertTarget = a.parentNode.parentNode.children[1];
+                if ([].slice.call(insertTarget.childNodes).some(n => n.tagName == "DOWNLOADBUTTON"))
+                    continue;
                 let titleEl = a.parentNode.parentNode.querySelector('a[href^="https://www.youtube.com"] h3');
                 url = a.href;
                 title = titleEl.innerText.replace(/ - youtube$/gi, '');
-                button.prependTo(a.parentNode.parentNode.children[1]);
+                button.prependTo(insertTarget);
             } else if (thumb.parentNode.nodeName == "G-IMG") {
                 let a = thumb.closest('a[href^="https://www.youtube.com"]');
+                console.log(a);
+                if ([].slice.call(a.parentNode.childNodes).some(n => n.tagName == "DOWNLOADBUTTON"))
+                    continue;
                 let titleEl = a.children[1];
                 url = a.href;
                 title = titleEl.innerText;
@@ -293,7 +299,7 @@
                 titleEl.children[0].style.maxHeight = "67px";
                 button.addClass("miniature").insertAfter(a);
             }
-            
+
             button.one("click", () => download(button, url.split("=")[1], title));
             buttons.push(button);
         }
