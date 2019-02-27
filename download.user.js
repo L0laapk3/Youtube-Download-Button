@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Youtube Download button
-// @version      5.1.4
+// @version      5.1.5
 // @author       L0laapk3
 // @match        *://www.youtube.com/*
 // @match        *://www.google.com/search*
@@ -247,7 +247,7 @@
     node = document.createElement('style');
     node.innerHTML =
     (youtube ?
-        "downloadbutton { transition: margin 0.2s; margin-right: 8px; user-select: none; white-space: nowrap; text-transform: uppercase; background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer; font-size: 1.4rem; letter-spacing: .007px; height: 33px; line-height: 33px; padding: 0 15px; font-weight: 500; z-index: 1; position: relative; }"
+        "downloadbutton { margin-top: 7px; transition: margin 0.2s; margin-right: 8px; user-select: none; white-space: nowrap; text-transform: uppercase; background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer; font-size: 1.4rem; letter-spacing: .007px; height: 33px; line-height: 33px; padding: 0 15px; font-weight: 500; z-index: 1; position: relative; }"
     :
         "@import url('https://fonts.googleapis.com/css?family=Roboto:500');" +
         "downloadbutton { width: fit-content; margin-left: 5px; float: right; font-family: Roboto, Arial, sans-serif; transition: margin 0.2s; margin: auto; user-select: none; white-space: nowrap; text-transform: uppercase; background-color: orange;color: white;border: solid 2px orange;border-radius: 2px;cursor: pointer; font-size: 14px; letter-spacing: .007px; height: 33px; line-height: 33px; padding: 0 15px; font-weight: 500; z-index: 1; position: relative; }" +
