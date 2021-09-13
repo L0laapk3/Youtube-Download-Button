@@ -1,4 +1,4 @@
-Adds download button to youtube videos.
+Adds download button to youtube videos. It just makes a request to external download sites and shows loading for the fastest one to respond.
 
 requires tampermonkey(chrome) or greasemonkey(firefox).
 
